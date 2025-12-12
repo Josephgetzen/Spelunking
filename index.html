@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Low Poly Totem Quest</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #87CEEB; }
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        #hud-top { padding: 20px; display: flex; justify-content: space-between; }
+        .totem-counter { background: rgba(0,0,0,0.5); color: white; padding: 10px 20px; border-radius: 10px; font-weight: bold; font-size: 1.2rem; }
+        .totem-slot { display: inline-block; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; margin-left: 5px; background: rgba(255,255,255,0.2); transition: 0.3s; }
+        
+        #hud-bottom { padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        #stamina-container { width: 300px; height: 20px; background: rgba(0,0,0,0.5); border: 2px solid white; border-radius: 10px; overflow: hidden; }
+        #stamina-bar { width: 100%; height: 100%; background: #FFD700; transition: width 0.1s linear; }
+        #controls-hint { color: white; text-shadow: 1px 1px 2px black; margin-top: 10px; text-align: center; font-size: 0.9rem; }
+        
+        #message-overlay {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 2rem; color: white; font-weight: bold; text-shadow: 2px 2px 0px #000;
+            opacity: 0; transition: opacity 0.5s; text-align: center;
+        }
+
+        #start-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; color: white; pointer-events: auto; z-index: 10;
+        }
+        button { padding: 15px 30px; font-size: 1.5rem; background: #FF4500; color: white; border: none; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        button:hover { background: #FF6347; }
+        
+        /* Effects */
+        .agitated { animation: shake 0.5s infinite; }
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>ISLAND OF THE 5 TOTEMS</h1>
+        <p>Find them all to win.</p>
+        <ul style="text-align: left; margin-bottom: 20px;">
+            <li><b style="color:#ff4444">Red:</b> Watch the Sunrise from the heights.</li>
+            <li><b style="color:#eeeeee">White:</b> Brave the agitated seagulls on the cliffs.</li>
+            <li><b style="color:#44ff44">Green:</b> Search the brush at the base.</li>
+            <li><b style="color:#444444">Black:</b> Enter the dark cave.</li>
+            <li><b style="color:#4444ff">Blue:</b> Fish by the water's edge.</li>
+        </ul>
+        <button id="start-btn">CLICK TO START</button>
+    </div>
+
+    <div id="ui-layer">
+        <div id="hud-top">
+            <div class="totem-counter">
+                Totems: 
+                <span id="slot-red" class="totem-slot" style="border-color:#ff4444"></span>
+                <span id="slot-white" class="totem-slot" style="border-color:#eeeeee"></span>
+                <span id="slot-green" class="totem-slot" style="border-color:#44ff44"></span>
+                <span id="slot-black" class="totem-slot" style="border-color:#444444"></span>
+                <span id="slot-blue" class="totem-slot" style="border-color:#4444ff"></span>
+            </div>
+            <div id="time-display" style="color: white; font-weight: bold; text-shadow: 1px 1px 2px black;">Time: Day</div>
+        </div>
+        <div id="message-overlay"></div>
+        <div id="hud-bottom">
+            <div id="stamina-container"><div id="stamina-bar"></div></div>
+            <div id="controls-hint">WASD to Move | SHIFT to Sprint | SPACE to Jump/Climb | MOUSE to Look</div>
+        </div>
+    </div>
+
+    <!-- Import Three.js via Module -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { SimplexNoise } from 'three/addons/math/SimplexNoise.js'; // Note: Three.js doesn't bundle Simplex, we'll write a simple height function instead to stay dependency light.
+
+        // --- GLOBAL CONFIG ---
+        const WORLD_SIZE = 400;
+        const MOUNTAIN_HEIGHT = 120;
+        const WATER_LEVEL = 5;
+        const COLORS = {
+            grass: 0x7cfc00,
+            rock: 0x808080,
+            water: 0x00BFFF,
+            sky: 0x87CEEB,
+            sun: 0xFDB813
+        };
+
+        // --- STATE ---
+        let camera, scene, renderer, controls;
+        let raycaster;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let sprint = false, jumping = false;
+        let canJump = false;
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let prevTime = performance.now();
+        
+        // Gameplay Stats
+        let stamina = 100;
+        const MAX_STAMINA = 100;
+        let isClimbing = false;
+        let collectedTotems = { red: false, white: false, green: false, black: false, blue: false };
+        
+        // World Objects
+        const objects = []; // Collidable objects (terrain chunks)
+        const totems = [];  // Interactive objects
+        let sunLight, sunMesh;
+        let dayTime = 0; // 0 to 1
+        let seagulls = [];
+        let caveZoneBox; 
+        
+        // --- INITIALIZATION ---
+        init();
+        animate();
+
+        function init() {
+            // Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.sky);
+            scene.fog = new THREE.Fog(COLORS.sky, 10, WORLD_SIZE / 1.5);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.y = 10;
+
+            // Light
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            sunLight = new THREE.DirectionalLight(0xffffff, 1);
+            sunLight.position.set(100, 100, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.camera.top = 200;
+            sunLight.shadow.camera.bottom = -200;
+            sunLight.shadow.camera.left = -200;
+            sunLight.shadow.camera.right = 200;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            scene.add(sunLight);
+
+            // Visual Sun
+            const sunGeo = new THREE.SphereGeometry(10, 16, 16);
+            const sunMat = new THREE.MeshBasicMaterial({ color: COLORS.sun });
+            sunMesh = new THREE.Mesh(sunGeo, sunMat);
+            scene.add(sunMesh);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Controls
+            controls = new PointerLockControls(camera, document.body);
+            
+            const startBtn = document.getElementById('start-btn');
+            startBtn.addEventListener('click', () => {
+                controls.lock();
+                document.getElementById('start-screen').style.display = 'none';
+            });
+
+            controls.addEventListener('lock', () => { /* Game Active */ });
+            controls.addEventListener('unlock', () => { document.getElementById('start-screen').style.display = 'flex'; });
+
+            scene.add(controls.getObject());
+
+            // Inputs
+            const onKeyDown = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = true; break;
+                    case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = true; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = true; break;
+                    case 'Space': if (canJump && stamina > 10) { velocity.y += 20; stamina -= 10; canJump = false; } jumping = true; break;
+                    case 'ShiftLeft': case 'ShiftRight': sprint = true; break;
+                }
+            };
+            const onKeyUp = function (event) {
+                switch (event.code) {
+                    case 'ArrowUp': case 'KeyW': moveForward = false; break;
+                    case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
+                    case 'ArrowDown': case 'KeyS': moveBackward = false; break;
+                    case 'ArrowRight': case 'KeyD': moveRight = false; break;
+                    case 'Space': jumping = false; break;
+                    case 'ShiftLeft': case 'ShiftRight': sprint = false; break;
+                }
+            };
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+
+            // --- WORLD GENERATION ---
+            generateWorld();
+            
+            // --- RESIZE ---
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // --- TERRAIN GENERATION LOGIC ---
+        function getHeight(x, z) {
+            // Simple radial mountain function
+            const dist = Math.sqrt(x*x + z*z);
+            let h = 0;
+            
+            // Main mountain shape (Cone-ish)
+            if (dist < WORLD_SIZE / 2) {
+                h = Math.max(0, MOUNTAIN_HEIGHT * (1 - dist / (WORLD_SIZE / 2.2)));
+                // Add noise detail
+                h += Math.sin(x * 0.1) * 2 + Math.cos(z * 0.1) * 2; 
+                h += Math.sin(x * 0.05 + z * 0.05) * 5;
+            }
+
+            // Flatten water bed
+            if (h < WATER_LEVEL) h = -5;
+
+            return h;
+        }
+
+        function generateWorld() {
+            // 1. Terrain Mesh
+            const geom = new THREE.PlaneGeometry(WORLD_SIZE, WORLD_SIZE, 128, 128);
+            geom.rotateX(-Math.PI / 2);
+
+            const posAttribute = geom.attributes.position;
+            const colors = [];
+
+            for (let i = 0; i < posAttribute.count; i++) {
+                const x = posAttribute.getX(i);
+                const z = posAttribute.getZ(i);
+                
+                // Cave Cutout Logic: Create a flat area/indentation for the cave at specific coords
+                let h = getHeight(x, z);
+                
+                // Cave Entrance Area (Black Totem Location) - roughly at x:50, z:20
+                if (x > 40 && x < 70 && z > 10 && z < 40) {
+                     // Dig a "trench" or flat spot
+                     h = Math.min(h, 20); 
+                }
+
+                posAttribute.setY(i, h);
+
+                // Vertex Coloring
+                if (h < WATER_LEVEL + 2) {
+                    // Sand/Dirt
+                    colors.push(0.76, 0.7, 0.5); 
+                } else if (h > MOUNTAIN_HEIGHT * 0.7) {
+                    // Snow/Rock
+                    colors.push(0.9, 0.9, 0.9);
+                } else if (h > MOUNTAIN_HEIGHT * 0.4) {
+                    // Rock/Grass Mix
+                    colors.push(0.4, 0.4, 0.4); 
+                } else {
+                    // Grass
+                    colors.push(0.2, 0.8, 0.2);
+                }
+            }
+
+            geom.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geom.computeVertexNormals();
+
+            const mat = new THREE.MeshStandardMaterial({ 
+                vertexColors: true, 
+                flatShading: true,
+                roughness: 0.8 
+            });
+            const terrain = new THREE.Mesh(geom, mat);
+            terrain.receiveShadow = true;
+            terrain.castShadow = true;
+            scene.add(terrain);
+            objects.push(terrain); // Used for raycasting height
+
+            // 2. Water
+            const waterGeom = new THREE.PlaneGeometry(WORLD_SIZE * 1.5, WORLD_SIZE * 1.5);
+            waterGeom.rotateX(-Math.PI / 2);
+            const waterMat = new THREE.MeshPhongMaterial({ 
+                color: COLORS.water, 
+                transparent: true, 
+                opacity: 0.6, 
+                shininess: 80 
+            });
+            const water = new THREE.Mesh(waterGeom, waterMat);
+            water.position.y = WATER_LEVEL;
+            scene.add(water);
+
+            // 3. Decor: Trees/Bushes
+            const treeGeo = new THREE.ConeGeometry(2, 8, 5);
+            const treeMat = new THREE.MeshLambertMaterial({ color: 0x228b22, flatShading: true });
+            const trunkGeo = new THREE.CylinderGeometry(0.5, 0.5, 2, 4);
+            const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            
+            // Place trees randomly
+            for(let i=0; i<150; i++) {
+                const x = (Math.random() - 0.5) * WORLD_SIZE * 0.8;
+                const z = (Math.random() - 0.5) * WORLD_SIZE * 0.8;
+                const y = getHeight(x, z);
+                if (y > WATER_LEVEL && y < MOUNTAIN_HEIGHT * 0.6) {
+                    const group = new THREE.Group();
+                    const leaves = new THREE.Mesh(treeGeo, treeMat);
+                    leaves.position.y = 5;
+                    leaves.castShadow = true;
+                    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                    trunk.position.y = 1;
+                    group.add(leaves);
+                    group.add(trunk);
+                    group.position.set(x, y, z);
+                    
+                    // Simple scaling variation
+                    const s = 0.8 + Math.random() * 0.5;
+                    group.scale.set(s,s,s);
+                    scene.add(group);
+                }
+            }
+
+            // 4. Construct the Cave (Black Totem Area)
+            // We flattened the terrain at x: 40->70, z: 10->40. Let's build a rock arch.
+            const rockGeo = new THREE.DodecahedronGeometry(5, 0);
+            const rockMat = new THREE.MeshLambertMaterial({ color: 0x555555, flatShading: true });
+            
+            // Build a crude cave structure
+            caveZoneBox = new THREE.Box3();
+            const caveCenter = new THREE.Vector3(55, 20, 25);
+            caveZoneBox.setFromCenterAndSize(caveCenter, new THREE.Vector3(20, 20, 20));
+
+            for(let i=0; i<30; i++) {
+                const rock = new THREE.Mesh(rockGeo, rockMat);
+                // Stack rocks to form walls and roof
+                const rx = 45 + Math.random() * 20;
+                const rz = 15 + Math.random() * 20;
+                const ry = 20 + Math.random() * 15;
+                
+                // Only place if it's "above" the empty space to make a roof, or on sides
+                if (ry > 30 || rx < 50 || rx > 60) {
+                     rock.position.set(rx, ry, rz);
+                     rock.scale.set(Math.random()+1, Math.random()+1, Math.random()+1);
+                     rock.castShadow = true;
+                     scene.add(rock);
+                }
+            }
+
+            // 5. Seagulls (White Totem Area)
+            // Place them near a high steep cliff. Let's say (-50, 80, -50) area.
+            const birdGeo = new THREE.ConeGeometry(0.5, 2, 3);
+            birdGeo.rotateX(Math.PI/2);
+            const birdMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            
+            for(let i=0; i<20; i++) {
+                const bird = new THREE.Mesh(birdGeo, birdMat);
+                // Random position around the peak
+                bird.userData = { 
+                    center: new THREE.Vector3(-40, 90, -40), 
+                    offset: Math.random() * Math.PI * 2, 
+                    speed: 0.02 + Math.random() * 0.02,
+                    radius: 10 + Math.random() * 10
+                };
+                scene.add(bird);
+                seagulls.push(bird);
+            }
+
+            // --- CREATE TOTEMS ---
+            createTotems();
+        }
+
+        function createTotems() {
+            const totemGeo = new THREE.OctahedronGeometry(1.5, 0);
+            
+            // 1. GREEN: Low laying brush. Random Spot in grass.
+            const greenPos = new THREE.Vector3(-60, 0, 60);
+            greenPos.y = getHeight(greenPos.x, greenPos.z) + 1.5;
+            // Add a bush to hide it
+            const bushGeo = new THREE.DodecahedronGeometry(3);
+            const bush = new THREE.Mesh(bushGeo, new THREE.MeshStandardMaterial({color:0x006400}));
+            bush.position.set(greenPos.x, greenPos.y, greenPos.z);
+            scene.add(bush);
+            addTotem('green', 0x44ff44, greenPos, "Found in the brush!");
+
+            // 2. BLUE: Fishing spot. Edge of map, water level.
+            addTotem('blue', 0x4444ff, new THREE.Vector3(120, WATER_LEVEL + 1, 0), "Fished out of the water!");
+
+            // 3. BLACK: Inside Cave.
+            addTotem('black', 0x222222, new THREE.Vector3(55, 22, 25), "Found in the dark cave!");
+
+            // 4. WHITE: Seagull Peak.
+            // High altitude, hard to reach.
+            const whitePos = new THREE.Vector3(-40, 95, -40); // Matches bird zone
+            addTotem('white', 0xeeeeee, whitePos, "You survived the gulls!");
+
+            // 5. RED: Sunrise. 
+            // Placed high up facing East.
+            // Condition: Must be sunrise time to collect.
+            const redPos = new THREE.Vector3(20, 110, 0);
+            addTotem('red', 0xff4444, redPos, "Witnessed the Sunrise!");
+        }
+
+        function addTotem(id, colorHex, pos, msg) {
+            const geo = new THREE.OctahedronGeometry(1, 0);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: colorHex, 
+                emissive: colorHex, 
+                emissiveIntensity: 0.5,
+                flatShading: true
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(pos);
+            
+            // Add point light for glow
+            const light = new THREE.PointLight(colorHex, 5, 10);
+            mesh.add(light);
+
+            scene.add(mesh);
+
+            totems.push({
+                id: id,
+                mesh: mesh,
+                color: colorHex,
+                collected: false,
+                message: msg
+            });
+        }
+
+        function updateTotems() {
+            const playerPos = controls.getObject().position;
+
+            totems.forEach(t => {
+                if (t.collected) {
+                    t.mesh.rotation.y += 0.1;
+                    t.mesh.position.y += Math.sin(Date.now() * 0.005) * 0.01;
+                    return;
+                }
+
+                // Spin animation
+                t.mesh.rotation.y += 0.02;
+
+                // Distance Check
+                const dist = playerPos.distanceTo(t.mesh.position);
+                
+                // Specific Logic Per Totem
+                if (dist < 4) {
+                    let collected = true;
+
+                    // Red Logic: Needs Sunrise
+                    if (t.id === 'red') {
+                        // Sunrise is roughly when Sun is coming up. In our cycle (0-1), 0.25 is noon, 0 is sunrise? 
+                        // Let's define the cycle.
+                        // Our cycle: sin/cos. 
+                        // Logic: Check if Sun Y is positive but low (horizon) and climbing.
+                        // Or simpler: Just check a specific "time" range.
+                        // Let's say cycle goes 0..1. 0=Sunrise, 0.5=Sunset.
+                        if (dayTime > 0.9 || dayTime < 0.15) {
+                            collected = true;
+                        } else {
+                            collected = false;
+                            showMessage("Wait for the Sunrise...");
+                        }
+                    }
+
+                    if (collected) {
+                        t.collected = true;
+                        t.mesh.visible = false; // Hide from world
+                        collectedTotems[t.id] = true;
+                        document.getElementById(`slot-${t.id}`).style.backgroundColor = '#' + t.color.toString(16);
+                        showMessage(t.message);
+                        checkWin();
+                    }
+                }
+            });
+        }
+
+        function checkWin() {
+            if (Object.values(collectedTotems).every(v => v)) {
+                showMessage("ALL TOTEMS COLLECTED! YOU ARE THE MOUNTAIN MASTER!");
+            }
+        }
+
+        function showMessage(msg) {
+            const el = document.getElementById('message-overlay');
+            el.innerText = msg;
+            el.style.opacity = 1;
+            setTimeout(() => { el.style.opacity = 0; }, 3000);
+        }
+
+        // --- GAME LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            if (controls.isLocked) {
+                
+                // 1. Day/Night Cycle
+                // Rotate sun around 0,0,0
+                const daySpeed = 0.05; // Speed of day
+                const t = time * daySpeed * 0.001; 
+                sunLight.position.x = Math.sin(t) * 100;
+                sunLight.position.y = Math.cos(t) * 100; // High noon at cos(0)=1
+                sunMesh.position.copy(sunLight.position);
+                
+                // Update Global Light Intensity based on height
+                const sunHeight = sunLight.position.y;
+                sunLight.intensity = THREE.MathUtils.clamp(sunHeight / 50, 0, 1.2);
+                
+                // Time Display calculation for UI (0-1 range for logic)
+                // Normalize t to 0-1 cycle
+                dayTime = (Math.sin(t) + 1) / 2; // Rough approximation for logic
+                let timeStr = sunHeight > 0 ? "Day" : "Night";
+                if (sunHeight > -10 && sunHeight < 20 && sunLight.position.x > 0) timeStr = "Sunrise";
+                if (sunHeight > -10 && sunHeight < 20 && sunLight.position.x < 0) timeStr = "Sunset";
+                document.getElementById('time-display').innerText = `Time: ${timeStr}`;
+
+                // 2. Movement & Physics
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+                velocity.y -= 9.8 * 30.0 * delta; // Gravity
+
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                // Stamina Logic
+                const isSprinting = sprint && stamina > 0 && (moveForward || moveBackward || moveLeft || moveRight);
+                const isClimbingAction = isClimbing && (moveForward || jumping) && stamina > 0;
+                
+                let speed = 400.0;
+                if (isSprinting) {
+                    speed = 800.0;
+                    stamina -= 20 * delta;
+                } else if (isClimbingAction) {
+                    stamina -= 30 * delta;
+                } else if (stamina < MAX_STAMINA) {
+                    stamina += 10 * delta; // Regen
+                }
+                
+                // Update UI
+                const staminaBar = document.getElementById('stamina-bar');
+                staminaBar.style.width = Math.max(0, stamina) + '%';
+                if (stamina < 20) staminaBar.style.backgroundColor = 'red';
+                else staminaBar.style.backgroundColor = '#FFD700';
+
+                // Move
+                if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
+                if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
+
+                // 3. Collision / Terrain Following
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                const pos = controls.getObject().position;
+                
+                // Get terrain height at current X, Z
+                const terrainHeight = getHeight(pos.x, pos.z);
+                
+                // Cave Floor Override (Hardcoded logic for cave zone)
+                // If in cave box and below roof, floor is 20
+                let groundY = terrainHeight;
+                if (caveZoneBox.containsPoint(pos)) {
+                   groundY = 20; // Flat floor inside cave
+                }
+
+                // Climbing Logic
+                // If player Y is close to groundY, we are walking.
+                // If groundY rises sharply in front of us (simple check: current height vs terrain height), we stop or climb.
+                // Simple hack: If terrainHeight is significantly higher than pos.y, we are hitting a wall.
+                // If holding Jump/Forward and have stamina, we "Climb" (move up).
+                
+                isClimbing = false;
+                const distToGround = pos.y - groundY;
+
+                // Wall detection (Look ahead logic simplified to: is groundY much higher than current feet?)
+                // Actually, standard FPS controls clip through slopes.
+                // We will force Y to be at least groundY + playerHeight.
+                
+                if (pos.y < groundY + 10) {
+                    velocity.y = Math.max(0, velocity.y);
+                    pos.y = groundY + 10;
+                    canJump = true;
+                }
+
+                // "Climbing" steep slopes
+                // If we are pressing forward but not moving much horizontally, and wall is in front?
+                // Simplified: If 'Space' is held and we are near a "steep" slope (terrain height > current + offset).
+                // Since we force pos.y = terrainHeight, we are effectively auto-climbing slopes. 
+                // To simulate mechanic: Check slope gradient.
+                // Gradient check: compare height at pos vs height at pos + forward vector.
+                const lookDir = new THREE.Vector3();
+                controls.getDirection(lookDir);
+                const nextStepY = getHeight(pos.x + lookDir.x * 2, pos.z + lookDir.z * 2);
+                
+                if (nextStepY > pos.y - 8 && nextStepY < pos.y + 10) {
+                    // Walkable slope
+                } else if (nextStepY >= pos.y + 10) {
+                    // Steep wall
+                    if (jumping && stamina > 0) {
+                        isClimbing = true;
+                        velocity.y = 150; // Boost up
+                    } else {
+                        // Push back / Slide down
+                        velocity.x = 0; 
+                        velocity.z = 0;
+                    }
+                }
+
+                // 4. White Totem / Seagull Logic
+                const birdZoneCenter = new THREE.Vector3(-40, 90, -40);
+                if (pos.distanceTo(birdZoneCenter) < 25) {
+                    document.body.classList.add('agitated');
+                    stamina -= 15 * delta; // Drain stamina simply by being here
+                } else {
+                    document.body.classList.remove('agitated');
+                }
+
+                // Animate Birds
+                seagulls.forEach(bird => {
+                    bird.userData.offset += bird.userData.speed;
+                    bird.position.x = bird.userData.center.x + Math.cos(bird.userData.offset) * bird.userData.radius;
+                    bird.position.z = bird.userData.center.z + Math.sin(bird.userData.offset) * bird.userData.radius;
+                    bird.position.y = bird.userData.center.y + Math.sin(bird.userData.offset * 2) * 5;
+                    bird.lookAt(bird.userData.center);
+                });
+
+                updateTotems();
+            }
+
+            prevTime = time;
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+    </script>
+</body>
+</html>
