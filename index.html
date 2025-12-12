@@ -129,7 +129,7 @@
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
         let sprint = false, jumping = false, canJump = false;
-        let velocity = new THREE.Vector3();
+        let velocity = new THREE.Vector3(); // x=right/left, y=up/down, z=fwd/back
         let direction = new THREE.Vector3();
         let prevTime = performance.now();
         
@@ -140,7 +140,7 @@
         // Intro State
         let isIntro = false;
         let introStartTime = 0;
-        const introOrigin = new THREE.Vector3(-300, 0, 300); // Starting spot
+        const introOrigin = new THREE.Vector3(-300, 0, 300);
 
         // World Objects
         let sunLight, sunMesh, flashlight;
@@ -163,9 +163,7 @@
         }
 
         // --- CAVE PATH MATH ---
-        // A winding path deep into the mountain
         function getCaveCenterZ(x) {
-            // Path starts at x=100, wanders up to x=500
             return 100 + 60 * Math.sin((x - 100) * 0.03) + 20 * Math.cos(x * 0.1);
         }
         
@@ -183,29 +181,20 @@
             h += noise(x * 0.1, z * 0.1) * 2;
 
             // Cave Carving
-            // We dig a tunnel from X=100 to X=550
             if (x > 80 && x < 550) {
                 const caveZ = getCaveCenterZ(x);
-                const tunnelWidth = 20; // Radius of tunnel floor
+                const tunnelWidth = 20;
                 const distToPath = Math.abs(z - caveZ);
 
                 if (distToPath < tunnelWidth) {
-                    // Flatten floor inside the tunnel
-                    // Add a slight upward slope to the cave floor
                     const caveFloorHeight = 30 + (x - 100) * 0.05; 
-                    
-                    // Smooth blending
-                    const blend = Math.min(1, distToPath / tunnelWidth); // 0 at center, 1 at edge
+                    const blend = Math.min(1, distToPath / tunnelWidth);
                     h = (h * blend) + (caveFloorHeight * (1 - blend)); 
-                    
-                    // Ensure floor is flatish
                     if (h > caveFloorHeight && distToPath < tunnelWidth * 0.8) h = caveFloorHeight;
                 }
             }
 
-            // Water Bed
             if (h < WATER_LEVEL) h = -5;
-
             return h;
         }
 
@@ -219,10 +208,8 @@
 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-            // Audio / Listener could go here
-
             // Lights
-            const ambient = new THREE.AmbientLight(0xffffff, 0.1); // Very dark ambient for cave contrast
+            const ambient = new THREE.AmbientLight(0xffffff, 0.1); 
             scene.add(ambient);
 
             sunLight = new THREE.DirectionalLight(0xfffff0, 1.5);
@@ -235,12 +222,11 @@
             sunLight.shadow.bias = -0.0005;
             scene.add(sunLight);
             
-            // Visual Sun
             sunMesh = new THREE.Mesh(new THREE.SphereGeometry(30,16,16), new THREE.MeshBasicMaterial({color:0xFFD700}));
             scene.add(sunMesh);
 
-            // Flashlight (Miner's lamp)
-            flashlight = new THREE.SpotLight(0xffffff, 0, 100, Math.PI/4, 0.5, 1);
+            // Flashlight
+            flashlight = new THREE.SpotLight(0xffffff, 0, 120, Math.PI/4, 0.5, 1);
             flashlight.position.set(0,0,0);
             flashlight.target.position.set(0,0,-1);
             camera.add(flashlight);
@@ -274,7 +260,11 @@
                     case 'KeyS': moveBackward = true; break;
                     case 'KeyD': moveRight = true; break;
                     case 'Space': 
-                        if (canJump && stamina > 5) { velocity.y += 35; stamina -= 5; canJump = false; } 
+                        if (canJump && stamina > 5) { 
+                            velocity.y = 35; // Set upward velocity
+                            stamina -= 5; 
+                            canJump = false; 
+                        } 
                         jumping = true; 
                         break;
                     case 'ShiftLeft': sprint = true; break;
@@ -302,20 +292,17 @@
                 renderer.setSize(window.innerWidth, window.innerHeight);
             });
 
-            // Initial Generation
+            // Initial Position
             introOrigin.y = getHeight(introOrigin.x, introOrigin.z);
-            camera.position.set(introOrigin.x, introOrigin.y + 1, introOrigin.z); // Lying down initially
+            camera.position.set(introOrigin.x, introOrigin.y + 1, introOrigin.z); 
 
             generateStaticProps();
         }
 
         function startIntro() {
             document.getElementById('start-screen').style.display = 'none';
-            
-            // Lock pointer immediately to capture input, but disable control logic updates
             controls.lock();
-            controls.enabled = false; // Disable mouse look logic inside controls for now
-            
+            controls.enabled = false;
             isIntro = true;
             introStartTime = performance.now();
         }
@@ -362,17 +349,15 @@
                 const h = getHeight(wx, wz);
                 pos.setY(i, h);
 
-                // Colors
-                if (h < WATER_LEVEL + 3) colors.push(0.76, 0.7, 0.5); // Sand
-                else if (h < 80) colors.push(0.1, 0.5, 0.1); // Grass
-                else if (h < 250) colors.push(0.4, 0.4, 0.4); // Rock
-                else colors.push(0.9, 0.9, 0.95); // Snow
+                if (h < WATER_LEVEL + 3) colors.push(0.76, 0.7, 0.5); 
+                else if (h < 80) colors.push(0.1, 0.5, 0.1); 
+                else if (h < 250) colors.push(0.4, 0.4, 0.4); 
+                else colors.push(0.9, 0.9, 0.95); 
 
-                // Darken cave path floor for visual cue
+                // Cave Floor
                 if (wx > 90 && wx < 550) {
                      const pathZ = getCaveCenterZ(wx);
                      if (Math.abs(wz - pathZ) < 18) {
-                         // Overwrite with dark grey/black
                          colors[colors.length-3] = 0.05;
                          colors[colors.length-2] = 0.05;
                          colors[colors.length-1] = 0.05;
@@ -390,8 +375,6 @@
 
         // --- PROPS ---
         function generateStaticProps() {
-            // 1. Cave Roof & Walls
-            // We iterate along the cave path and place rocks to cover it
             const rockGeo = new THREE.DodecahedronGeometry(15, 0);
             const rockMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
             
@@ -399,29 +382,11 @@
                 const z = getCaveCenterZ(x);
                 const y = getHeight(x, z);
                 
-                // Add Roof Rocks
-                const roofH = y + 25; // Ceiling height
-                // Place 3 rocks to form an arch
-                const r1 = new THREE.Mesh(rockGeo, rockMat);
-                r1.position.set(x, roofH, z);
-                r1.scale.set(1.5, 0.5, 1.5);
-                r1.castShadow = true;
-                scene.add(r1);
-
-                // Walls to block side light
-                const r2 = new THREE.Mesh(rockGeo, rockMat);
-                r2.position.set(x, roofH - 10, z + 20);
-                r2.scale.set(1, 2, 1);
-                r2.castShadow = true;
-                scene.add(r2);
-
-                const r3 = new THREE.Mesh(rockGeo, rockMat);
-                r3.position.set(x, roofH - 10, z - 20);
-                r3.scale.set(1, 2, 1);
-                r3.castShadow = true;
-                scene.add(r3);
+                const roofH = y + 25; 
+                const r1 = new THREE.Mesh(rockGeo, rockMat); r1.position.set(x, roofH, z); r1.scale.set(1.5, 0.5, 1.5); r1.castShadow = true; scene.add(r1);
+                const r2 = new THREE.Mesh(rockGeo, rockMat); r2.position.set(x, roofH - 10, z + 20); r2.scale.set(1, 2, 1); r2.castShadow = true; scene.add(r2);
+                const r3 = new THREE.Mesh(rockGeo, rockMat); r3.position.set(x, roofH - 10, z - 20); r3.scale.set(1, 2, 1); r3.castShadow = true; scene.add(r3);
                 
-                // Occasional Stalactite inside?
                 if (Math.random() > 0.8) {
                     const stal = new THREE.Mesh(new THREE.ConeGeometry(1, 10), new THREE.MeshStandardMaterial({color:0x555555}));
                     stal.position.set(x + (Math.random()-0.5)*10, roofH - 5, z + (Math.random()-0.5)*10);
@@ -430,7 +395,6 @@
                 }
             }
 
-            // 2. Trees (Outside)
             const treeGeo = new THREE.ConeGeometry(5, 20, 5);
             const treeMat = new THREE.MeshLambertMaterial({ color: 0x228b22 });
             const trunkGeo = new THREE.CylinderGeometry(1, 1, 5);
@@ -444,41 +408,27 @@
                     const grp = new THREE.Group();
                     const l = new THREE.Mesh(treeGeo, treeMat); l.position.y = 10;
                     const t = new THREE.Mesh(trunkGeo, rockMat); t.position.y = 2.5;
-                    grp.add(l, t);
-                    grp.position.set(x, y, z);
-                    grp.castShadow = true;
-                    scene.add(grp);
+                    grp.add(l, t); grp.position.set(x, y, z); grp.castShadow = true; scene.add(grp);
                 }
             }
 
-            // 3. Totems
-            // Red: Peak East
             addTotem('red', 0xff4444, new THREE.Vector3(200, 420, 0), "Dawn Witnessed.");
-            // White: Peak West (Seagulls)
             addTotem('white', 0xeeeeee, new THREE.Vector3(-200, 380, 0), "Storm Survived.");
-            // Green: Brush
             addTotem('green', 0x44ff44, new THREE.Vector3(-350, getHeight(-350, 200)+2, 200), "Nature Found.");
-            // Blue: Water
             addTotem('blue', 0x4444ff, new THREE.Vector3(0, WATER_LEVEL+2, -600), "Depths Searched.");
-            // Black: Deep Cave End
             addTotem('black', 0x111111, new THREE.Vector3(540, 55, getCaveCenterZ(540)), "Darkness Conquered.");
 
-            // 4. Birds (White Totem Area)
             const birdGeo = new THREE.ConeGeometry(0.5, 2, 3); birdGeo.rotateX(Math.PI/2);
             for(let i=0; i<25; i++) {
                 const b = new THREE.Mesh(birdGeo, new THREE.MeshBasicMaterial({color:0xffffff}));
                 b.userData = { center: new THREE.Vector3(-200, 390, 0), t: Math.random()*100 };
-                scene.add(b);
-                birds.push(b);
+                scene.add(b); birds.push(b);
             }
         }
 
         function addTotem(id, color, pos, msg) {
             const m = new THREE.Mesh(new THREE.OctahedronGeometry(2), new THREE.MeshStandardMaterial({color:color, emissive:color, emissiveIntensity:0.5}));
-            m.position.copy(pos);
-            const l = new THREE.PointLight(color, 5, 20);
-            m.add(l);
-            scene.add(m);
+            m.position.copy(pos); m.add(new THREE.PointLight(color, 5, 20)); scene.add(m);
             totems.push({id, mesh: m, msg, collected: false, color});
         }
 
@@ -490,64 +440,45 @@
             const delta = Math.min((time - prevTime) / 1000, 0.1);
             prevTime = time;
 
-            // --- INTRO SEQUENCE ---
             if (isIntro) {
                 const elapsed = (time - introStartTime) / 1000;
-                
-                // Phase 1: Stand up (0s - 2s)
                 if (elapsed < 2.0) {
-                    const t = elapsed / 2.0; // 0 to 1
-                    // Easing cubic out
-                    const ease = 1 - Math.pow(1 - t, 3);
+                    const t = elapsed / 2.0; const ease = 1 - Math.pow(1 - t, 3);
                     camera.position.y = (introOrigin.y + 1) + (playerHeight - 1) * ease;
-                    // Tilt look up slightly
                     camera.rotation.x = -Math.PI/4 * (1 - ease); 
-                } 
-                // Phase 2: Look Left/Right (2s - 4s)
-                else if (elapsed < 4.5) {
+                } else if (elapsed < 4.5) {
                     camera.position.y = introOrigin.y + playerHeight;
                     const lookT = (elapsed - 2.0);
-                    // Sine wave rotation for looking around
-                    camera.rotation.y = Math.sin(lookT * 2) * 0.5; 
-                    camera.rotation.x = 0;
-                }
-                // End Intro
-                else {
-                    isIntro = false;
-                    controls.enabled = true; // Give control to player
-                    flashlight.intensity = 2; // Auto turn on light
+                    camera.rotation.y = Math.sin(lookT * 2) * 0.5; camera.rotation.x = 0;
+                } else {
+                    isIntro = false; controls.enabled = true; flashlight.intensity = 2;
                     document.body.classList.remove('cinematic-active');
                     document.getElementById('controls-hint').style.opacity = 1;
                     showMessage("Find the 5 Artifacts");
                 }
-                
-                // Still load chunks during intro so it looks nice
                 updateChunks();
-                return; // Skip game logic
+                return;
             }
 
             if (controls.isLocked) {
                 updateChunks();
 
-                // Day Cycle
-                const dayLen = 300; 
-                const t = (time / 1000) / dayLen;
+                const dayLen = 300; const t = (time / 1000) / dayLen;
                 const sunY = Math.sin(t * 6.28) * 500;
-                const sunX = Math.cos(t * 6.28) * 500;
-                sunLight.position.set(sunX, sunY, 100);
+                sunLight.position.set(Math.cos(t * 6.28) * 500, sunY, 100);
                 sunMesh.position.copy(sunLight.position);
                 sunLight.intensity = Math.max(0.05, Math.sin(t * 6.28));
-                
-                // Color Fog based on time (Sunrise/Sunset/Night)
-                if (sunY < 0) scene.fog.color.setHex(0x050510); // Night
-                else if (sunY < 100) scene.fog.color.setHex(0xffaa55); // Sunrise/Set
-                else scene.fog.color.setHex(0x87CEEB); // Day
+                scene.fog.color.setHex(sunY < 0 ? 0x050510 : (sunY < 100 ? 0xffaa55 : 0x87CEEB));
 
-                // Physics
+                // --- PHYSICS START ---
+                // Friction
                 velocity.x -= velocity.x * 5.0 * delta;
                 velocity.z -= velocity.z * 5.0 * delta;
-                velocity.y -= 30.0 * delta; // Gravity
+                
+                // Gravity (Applied to velocity)
+                velocity.y -= 50.0 * delta; // 50.0 is the gravity constant
 
+                // Movement Inputs
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
@@ -555,15 +486,19 @@
                 const speed = (sprint && stamina > 0) ? 1000 : 500;
                 if (sprint && direction.length() > 0) stamina -= 10 * delta;
                 else if (stamina < 100) stamina += 5 * delta;
-                
                 document.getElementById('stamina-bar').style.width = stamina + '%';
 
                 if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
+                // Apply Horizontal Velocity (PointerLockControls handles X/Z orientation)
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
 
+                // Apply Vertical Velocity (Manual Position Update)
+                camera.position.y += velocity.y * delta;
+
+                // Ground Collision
                 const pos = camera.position;
                 const ground = getHeight(pos.x, pos.z);
                 
@@ -572,8 +507,8 @@
                     pos.y = ground + playerHeight;
                     canJump = true;
                 }
+                // --- PHYSICS END ---
 
-                // Birds Logic
                 birds.forEach(b => {
                     b.userData.t += delta;
                     b.position.copy(b.userData.center);
@@ -581,14 +516,12 @@
                     b.position.z += Math.cos(b.userData.t * 0.7) * 30;
                     b.position.y += Math.sin(b.userData.t * 2.5) * 10;
                     b.lookAt(b.userData.center);
-                    
                     if (pos.distanceTo(b.userData.center) < 80) {
                          if (Math.random() > 0.9) document.body.classList.toggle('shaking');
                          stamina -= delta * 2;
                     }
                 });
 
-                // Totem Logic
                 totems.forEach(totem => {
                     if(totem.collected) {
                         totem.mesh.rotation.y += 0.1; 
@@ -597,11 +530,8 @@
                     }
                     totem.mesh.rotation.y += 0.02;
                     if (pos.distanceTo(totem.mesh.position) < 10) {
-                        if (totem.id === 'red' && sunLight.position.y > 50) {
-                             showMessage("Wait for Sunrise..."); return;
-                        }
-                        totem.collected = true;
-                        totem.mesh.visible = false;
+                        if (totem.id === 'red' && sunLight.position.y > 50) { showMessage("Wait for Sunrise..."); return; }
+                        totem.collected = true; totem.mesh.visible = false;
                         collectedTotems[totem.id] = true;
                         document.getElementById(`slot-${totem.id}`).classList.add('filled');
                         document.getElementById(`slot-${totem.id}`).style.backgroundColor = '#' + totem.color.toString(16);
@@ -615,11 +545,9 @@
 
         function showMessage(txt) {
             const el = document.getElementById('message-overlay');
-            el.innerText = txt;
-            el.style.opacity = 1;
+            el.innerText = txt; el.style.opacity = 1;
             setTimeout(() => el.style.opacity = 0, 3000);
         }
-
     </script>
 </body>
 </html>
