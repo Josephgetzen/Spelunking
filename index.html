@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Totem Quest: Giant World</title>
+    <title>Spelunking</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #87CEEB; }
+        body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background-color: #1a1a1a; }
         
         /* UI LAYOUT */
         #ui-layer {
@@ -15,92 +15,92 @@
         /* TOP HUD */
         #hud-top { padding: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
         .totem-counter { 
-            background: rgba(0,0,0,0.6); color: white; padding: 15px 25px; 
-            border-radius: 12px; font-weight: bold; font-size: 1.4rem; 
-            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.8); color: white; padding: 15px 25px; 
+            border-radius: 4px; font-weight: bold; font-size: 1.4rem; 
+            border: 1px solid #444;
             display: flex; align-items: center; gap: 10px;
         }
         .totem-slot { 
-            width: 24px; height: 24px; border-radius: 50%; border: 3px solid #555; 
-            background: rgba(0,0,0,0.5); transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+            width: 20px; height: 20px; border-radius: 2px; border: 2px solid #555; 
+            background: #222; transition: 0.4s; 
         }
-        .filled { border-color: white !important; transform: scale(1.2); box-shadow: 0 0 15px currentColor; }
+        .filled { border-color: white !important; box-shadow: 0 0 10px currentColor; transform: scale(1.2); }
 
         /* BOTTOM HUD */
         #hud-bottom { padding: 30px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         #stamina-container { 
-            width: 400px; height: 24px; background: rgba(0,0,0,0.6); 
-            border: 3px solid white; border-radius: 12px; overflow: hidden; 
+            width: 300px; height: 15px; background: #222; 
+            border: 2px solid #555; border-radius: 4px; overflow: hidden; 
         }
-        #stamina-bar { width: 100%; height: 100%; background: #FFD700; transition: width 0.1s linear, background 0.3s; }
+        #stamina-bar { width: 100%; height: 100%; background: #FFD700; transition: width 0.1s linear; }
         #controls-hint { 
-            color: rgba(255,255,255,0.9); text-shadow: 2px 2px 0px #000; 
-            font-size: 1rem; font-weight: 600; letter-spacing: 1px;
+            color: rgba(255,255,255,0.6); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px;
+            opacity: 0; transition: opacity 1s; 
         }
         
-        /* OVERLAYS */
+        /* MESSAGES */
         #message-overlay {
             position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 3rem; color: #fff; font-weight: 900; 
-            text-shadow: 3px 3px 0px #000, 0 0 20px rgba(255,255,255,0.5);
+            font-size: 2rem; color: #fff; font-weight: bold; 
+            text-shadow: 0px 0px 10px rgba(0,0,0,1);
             opacity: 0; transition: opacity 0.5s; text-align: center; width: 100%;
         }
 
+        /* START SCREEN */
         #start-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            background: #000;
             display: flex; flex-direction: column;
             justify-content: center; align-items: center; color: white; pointer-events: auto; z-index: 10;
         }
-        h1 { font-size: 4rem; margin: 0; text-shadow: 4px 4px 0 #000; letter-spacing: 2px; }
-        .instruction-box { background: rgba(0,0,0,0.5); padding: 30px; border-radius: 15px; margin: 20px; max-width: 600px; }
+        h1 { font-size: 5rem; margin: 0 0 40px 0; letter-spacing: 10px; color: #ccc; text-transform: uppercase; font-weight: 100; }
+        
         button { 
-            padding: 20px 50px; font-size: 2rem; background: #FF4500; color: white; 
-            border: 4px solid white; cursor: pointer; border-radius: 50px; 
-            font-weight: 900; transition: 0.2s; box-shadow: 0 10px 0 #b33200;
+            padding: 15px 60px; font-size: 1.5rem; background: transparent; color: white; 
+            border: 2px solid white; cursor: pointer; letter-spacing: 5px;
+            transition: 0.3s; font-family: 'Courier New', Courier, monospace;
         }
-        button:hover { transform: translateY(-2px); box-shadow: 0 12px 0 #b33200; }
-        button:active { transform: translateY(4px); box-shadow: 0 2px 0 #b33200; }
+        button:hover { background: white; color: black; }
 
         /* FX */
-        .shaking { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both infinite; }
-        @keyframes shake { 10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-8px, 0, 0); } 40%, 60% { transform: translate3d(8px, 0, 0); } }
+        .shaking { animation: shake 0.5s infinite; }
+        @keyframes shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(1px, -1px); } }
+        
+        .cinematic-bar {
+            position: absolute; left: 0; width: 100%; height: 0%; background: black; transition: height 0.5s; z-index: 5;
+        }
+        #bar-top { top: 0; }
+        #bar-bottom { bottom: 0; }
+        .cinematic-active #bar-top, .cinematic-active #bar-bottom { height: 15%; }
+
     </style>
 </head>
-<body>
+<body class="cinematic-active">
+
+    <div id="bar-top" class="cinematic-bar"></div>
+    <div id="bar-bottom" class="cinematic-bar"></div>
 
     <div id="start-screen">
-        <h1>TITAN'S PEAK</h1>
-        <div class="instruction-box">
-            <p>A massive open world adventure. Find the 5 Ancient Totems.</p>
-            <ul style="text-align: left; font-size: 1.1rem; line-height: 1.6;">
-                <li><b style="color:#ff4444">Red:</b> High Peak (East). Watch the Sunrise.</li>
-                <li><b style="color:#eeeeee">White:</b> High Peak (West). Survive the Seagulls.</li>
-                <li><b style="color:#44ff44">Green:</b> Forest brush at the base.</li>
-                <li><b style="color:#888888">Black:</b> Inside the Giant's Cave.</li>
-                <li><b style="color:#4444ff">Blue:</b> Floating at the water's edge.</li>
-            </ul>
-        </div>
-        <button id="start-btn">ENTER WORLD</button>
+        <h1>SPELUNKING</h1>
+        <button id="start-btn">BEGIN</button>
     </div>
 
     <div id="ui-layer">
         <div id="hud-top">
             <div class="totem-counter">
-                <span>TOTEMS</span>
+                <span>ARTIFACTS</span>
                 <span id="slot-red" class="totem-slot" style="border-color:#ff4444"></span>
                 <span id="slot-white" class="totem-slot" style="border-color:#eeeeee"></span>
                 <span id="slot-green" class="totem-slot" style="border-color:#44ff44"></span>
                 <span id="slot-black" class="totem-slot" style="border-color:#444444"></span>
                 <span id="slot-blue" class="totem-slot" style="border-color:#4444ff"></span>
             </div>
-            <div id="time-display" style="color: white; font-weight: 900; font-size: 1.5rem; text-shadow: 2px 2px 0 black;">12:00 PM</div>
+            <div id="time-display" style="color: #ccc; font-weight: bold;">--:--</div>
         </div>
         <div id="message-overlay"></div>
         <div id="hud-bottom">
             <div id="stamina-container"><div id="stamina-bar"></div></div>
-            <div id="controls-hint">WASD Move | SHIFT Sprint | SPACE Jump/Climb | MOUSE Look</div>
+            <div id="controls-hint">WASD Move | SHIFT Sprint | SPACE Jump | F Flashlight</div>
         </div>
     </div>
 
@@ -119,94 +119,92 @@
         import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 
         // --- CONFIGURATION ---
-        const WORLD_RADIUS = 600; // Total width 1200
-        const MOUNTAIN_HEIGHT = 360;
-        const WATER_LEVEL = 15;
-        const CHUNK_SIZE = 100; // Size of terrain squares
-        const DRAW_DISTANCE = 4; // Radius of chunks to render around player (4 = 9x9 grid roughly)
+        const WORLD_RADIUS = 800; 
+        const MOUNTAIN_HEIGHT = 450;
+        const WATER_LEVEL = 10;
+        const CHUNK_SIZE = 100;
+        const DRAW_DISTANCE = 4;
         
-        const COLORS = {
-            grass: 0x567d46,
-            rock: 0x5a5a5a,
-            snow: 0xffffff,
-            sand: 0xe6c288,
-            water: 0x1ca3ec,
-            sky: 0x87CEEB,
-            sun: 0xFDB813
-        };
-
         // --- GAME STATE ---
         let camera, scene, renderer, controls;
         let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let sprint = false, jumping = false;
-        let canJump = false;
+        let sprint = false, jumping = false, canJump = false;
         let velocity = new THREE.Vector3();
         let direction = new THREE.Vector3();
         let prevTime = performance.now();
         
-        // Player Stats
         let stamina = 100;
-        const MAX_STAMINA = 100;
-        let isClimbing = false;
         let collectedTotems = { red: false, white: false, green: false, black: false, blue: false };
-        let playerHeight = 12;
+        let playerHeight = 14;
+        
+        // Intro State
+        let isIntro = false;
+        let introStartTime = 0;
+        const introOrigin = new THREE.Vector3(-300, 0, 300); // Starting spot
 
-        // Environment
-        let sunLight, sunMesh;
+        // World Objects
+        let sunLight, sunMesh, flashlight;
         let dayTime = 0.5; 
-        const activeChunks = new Map(); // Key: "x,z" Value: Mesh
+        const activeChunks = new Map();
         const totems = [];
         const birds = [];
         
-        // Deterministic Noise Helper (simple pseudo random)
+        // Noise Helpers
         function pseudorandom(x, z) {
             let n = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
             return n - Math.floor(n);
         }
-
         function noise(x, z) {
-            // Very simple value noise smoothing
-            const floorX = Math.floor(x);
-            const floorZ = Math.floor(z);
-            const s = pseudorandom(floorX, floorZ); 
-            const t = pseudorandom(floorX+1, floorZ);
-            const u = pseudorandom(floorX, floorZ+1);
-            const v = pseudorandom(floorX+1, floorZ+1);
-            const fX = x - floorX;
-            const fZ = z - floorZ;
-            const i1 = s + (t - s) * fX;
-            const i2 = u + (v - u) * fX;
-            return i1 + (i2 - i1) * fZ;
+            const floorX = Math.floor(x), floorZ = Math.floor(z);
+            const s = pseudorandom(floorX, floorZ), t = pseudorandom(floorX+1, floorZ);
+            const u = pseudorandom(floorX, floorZ+1), v = pseudorandom(floorX+1, floorZ+1);
+            const fX = x - floorX, fZ = z - floorZ;
+            return (s + (t - s) * fX) + ((u + (v - u) * fX) - s - (t - s) * fX) * fZ; 
         }
 
-        // --- MATH: HEIGHT FUNCTION (The Source of Truth) ---
+        // --- CAVE PATH MATH ---
+        // A winding path deep into the mountain
+        function getCaveCenterZ(x) {
+            // Path starts at x=100, wanders up to x=500
+            return 100 + 60 * Math.sin((x - 100) * 0.03) + 20 * Math.cos(x * 0.1);
+        }
+        
+        // --- HEIGHT FUNCTION ---
         function getHeight(x, z) {
             const dist = Math.sqrt(x*x + z*z);
-            
-            // 1. Base Mountain Shape (Large Cone)
             let h = 0;
+
+            // Mountain Shape
             if (dist < WORLD_RADIUS) {
-                // Parabolic falloff for nicer curve than linear
-                const normalizeDist = dist / WORLD_RADIUS;
-                h = MOUNTAIN_HEIGHT * Math.pow(1 - normalizeDist, 1.5);
+                h = MOUNTAIN_HEIGHT * Math.pow(1 - dist / WORLD_RADIUS, 2);
             }
-            
-            // 2. Add Detail Noise (Low frequency for hills)
-            h += noise(x * 0.02, z * 0.02) * 20;
-            
-            // 3. Add High Frequency Noise (Rocks/Roughness)
-            h += noise(x * 0.1, z * 0.1) * 3;
+            // Detail
+            h += noise(x * 0.03, z * 0.03) * 15;
+            h += noise(x * 0.1, z * 0.1) * 2;
 
-            // 4. Cave Indentation (Specific coordinates for Black Totem)
-            // Area: x[120, 200], z[50, 150]
-            if (x > 120 && x < 200 && z > 50 && z < 150) {
-                 // Dig a trench
-                 h *= 0.3; 
-                 if (h < 25) h = 25; // Flat floor
+            // Cave Carving
+            // We dig a tunnel from X=100 to X=550
+            if (x > 80 && x < 550) {
+                const caveZ = getCaveCenterZ(x);
+                const tunnelWidth = 20; // Radius of tunnel floor
+                const distToPath = Math.abs(z - caveZ);
+
+                if (distToPath < tunnelWidth) {
+                    // Flatten floor inside the tunnel
+                    // Add a slight upward slope to the cave floor
+                    const caveFloorHeight = 30 + (x - 100) * 0.05; 
+                    
+                    // Smooth blending
+                    const blend = Math.min(1, distToPath / tunnelWidth); // 0 at center, 1 at edge
+                    h = (h * blend) + (caveFloorHeight * (1 - blend)); 
+                    
+                    // Ensure floor is flatish
+                    if (h > caveFloorHeight && distToPath < tunnelWidth * 0.8) h = caveFloorHeight;
+                }
             }
 
-            // 5. Water Bed
-            if (h < WATER_LEVEL) h = WATER_LEVEL - 10; 
+            // Water Bed
+            if (h < WATER_LEVEL) h = -5;
 
             return h;
         }
@@ -215,83 +213,60 @@
         animate();
 
         function init() {
-            // Scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(COLORS.sky);
-            scene.fog = new THREE.Fog(COLORS.sky, 50, 450); // Fog hides chunk loading edges
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 20, 500);
 
-            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-            // Lighting
-            const ambient = new THREE.AmbientLight(0xffffff, 0.3);
+            // Audio / Listener could go here
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.1); // Very dark ambient for cave contrast
             scene.add(ambient);
 
-            sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            sunLight = new THREE.DirectionalLight(0xfffff0, 1.5);
             sunLight.castShadow = true;
-            // Optimize Shadow Map for Large World
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.camera.top = 200;
-            sunLight.shadow.camera.bottom = -200;
-            sunLight.shadow.camera.left = -200;
-            sunLight.shadow.camera.right = 200;
+            sunLight.shadow.mapSize.set(2048, 2048);
+            sunLight.shadow.camera.top = 400;
+            sunLight.shadow.camera.bottom = -400;
+            sunLight.shadow.camera.left = -400;
+            sunLight.shadow.camera.right = 400;
+            sunLight.shadow.bias = -0.0005;
             scene.add(sunLight);
-
+            
             // Visual Sun
-            const sunGeo = new THREE.SphereGeometry(20, 16, 16);
-            sunMesh = new THREE.Mesh(sunGeo, new THREE.MeshBasicMaterial({color: COLORS.sun}));
+            sunMesh = new THREE.Mesh(new THREE.SphereGeometry(30,16,16), new THREE.MeshBasicMaterial({color:0xFFD700}));
             scene.add(sunMesh);
 
-            // Water Plane (Infinite Visual)
-            const waterGeo = new THREE.PlaneGeometry(WORLD_RADIUS * 3, WORLD_RADIUS * 3);
+            // Flashlight (Miner's lamp)
+            flashlight = new THREE.SpotLight(0xffffff, 0, 100, Math.PI/4, 0.5, 1);
+            flashlight.position.set(0,0,0);
+            flashlight.target.position.set(0,0,-1);
+            camera.add(flashlight);
+            camera.add(flashlight.target);
+            scene.add(camera);
+
+            // Water
+            const waterGeo = new THREE.PlaneGeometry(2000, 2000);
             waterGeo.rotateX(-Math.PI / 2);
-            const waterMat = new THREE.MeshPhongMaterial({ 
-                color: COLORS.water, transparent: true, opacity: 0.7, shininess: 90 
-            });
+            const waterMat = new THREE.MeshPhongMaterial({ color: 0x001e0f, transparent: true, opacity: 0.8, shininess: 100 });
             const water = new THREE.Mesh(waterGeo, waterMat);
             water.position.y = WATER_LEVEL;
             scene.add(water);
 
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio for performance
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            // Controls
             controls = new PointerLockControls(camera, document.body);
-            
-            // Set Start Position (Base of mountain, safe spot)
-            // Searching for a spot at roughly Radius * 0.7
-            const startX = -350;
-            const startZ = 100;
-            const startY = getHeight(startX, startZ);
-            camera.position.set(startX, startY + 10, startZ);
 
-            // Event Listeners
-            setupInputs();
-            setupUI();
-            
-            // Generate Static Objects (Cave Rocks, Trees, Totems)
-            // Note: Since chunk loading only handles terrain, we'll spawn interactables globally 
-            // but culling usually handles them. For simplicity in this file, we spawn all props now.
-            generateProps();
-            
-            window.addEventListener('resize', onWindowResize);
-        }
+            // UI Events
+            document.getElementById('start-btn').addEventListener('click', startIntro);
 
-        function setupUI() {
-            const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', () => {
-                controls.lock();
-                document.getElementById('start-screen').style.display = 'none';
-            });
-            controls.addEventListener('unlock', () => { document.getElementById('start-screen').style.display = 'flex'; });
-        }
-
-        function setupInputs() {
+            // Input
             const onKeyDown = (e) => {
                 switch (e.code) {
                     case 'KeyW': moveForward = true; break;
@@ -299,14 +274,13 @@
                     case 'KeyS': moveBackward = true; break;
                     case 'KeyD': moveRight = true; break;
                     case 'Space': 
-                        if (canJump && stamina > 10) { 
-                            velocity.y += 35; // Higher jump for bigger world
-                            stamina -= 10; 
-                            canJump = false; 
-                        } 
+                        if (canJump && stamina > 5) { velocity.y += 35; stamina -= 5; canJump = false; } 
                         jumping = true; 
                         break;
                     case 'ShiftLeft': sprint = true; break;
+                    case 'KeyF': 
+                        flashlight.intensity = flashlight.intensity > 0 ? 0 : 2; 
+                        break;
                 }
             };
             const onKeyUp = (e) => {
@@ -321,371 +295,331 @@
             };
             document.addEventListener('keydown', onKeyDown);
             document.addEventListener('keyup', onKeyUp);
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Initial Generation
+            introOrigin.y = getHeight(introOrigin.x, introOrigin.z);
+            camera.position.set(introOrigin.x, introOrigin.y + 1, introOrigin.z); // Lying down initially
+
+            generateStaticProps();
         }
 
-        // --- CHUNK GENERATION ---
+        function startIntro() {
+            document.getElementById('start-screen').style.display = 'none';
+            
+            // Lock pointer immediately to capture input, but disable control logic updates
+            controls.lock();
+            controls.enabled = false; // Disable mouse look logic inside controls for now
+            
+            isIntro = true;
+            introStartTime = performance.now();
+        }
+
+        // --- CHUNKS ---
         function updateChunks() {
             const px = camera.position.x;
             const pz = camera.position.z;
+            const cx = Math.floor(px / CHUNK_SIZE);
+            const cz = Math.floor(pz / CHUNK_SIZE);
+            const needed = new Set();
 
-            // Determine grid coordinates
-            const currentChunkX = Math.floor(px / CHUNK_SIZE);
-            const currentChunkZ = Math.floor(pz / CHUNK_SIZE);
-
-            // Identify keys needed
-            const neededKeys = new Set();
             for (let x = -DRAW_DISTANCE; x <= DRAW_DISTANCE; x++) {
                 for (let z = -DRAW_DISTANCE; z <= DRAW_DISTANCE; z++) {
-                    const cx = currentChunkX + x;
-                    const cz = currentChunkZ + z;
-                    neededKeys.add(`${cx},${cz}`);
+                    needed.add(`${cx+x},${cz+z}`);
                 }
             }
-
-            // Remove old chunks
-            for (const [key, mesh] of activeChunks) {
-                if (!neededKeys.has(key)) {
+            
+            activeChunks.forEach((mesh, key) => {
+                if (!needed.has(key)) {
                     scene.remove(mesh);
                     mesh.geometry.dispose();
                     activeChunks.delete(key);
                 }
-            }
+            });
 
-            // Create new chunks
-            for (const key of neededKeys) {
+            needed.forEach(key => {
                 if (!activeChunks.has(key)) {
-                    const [cx, cz] = key.split(',').map(Number);
-                    createChunk(cx, cz);
+                    const [mx, mz] = key.split(',').map(Number);
+                    createChunk(mx, mz);
                 }
-            }
+            });
         }
 
         function createChunk(cx, cz) {
-            // Create a plane for this chunk
-            const geometry = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, 16, 16); // Lower segment count per chunk for performance
-            geometry.rotateX(-Math.PI / 2);
-            
-            const positions = geometry.attributes.position;
+            const geo = new THREE.PlaneGeometry(CHUNK_SIZE, CHUNK_SIZE, 32, 32);
+            geo.rotateX(-Math.PI / 2);
+            const pos = geo.attributes.position;
             const colors = [];
-
-            // Displace vertices
-            for (let i = 0; i < positions.count; i++) {
-                // Local coords
-                const lx = positions.getX(i);
-                const lz = positions.getZ(i);
-                
-                // World coords
-                const wx = lx + (cx * CHUNK_SIZE);
-                const wz = lz + (cz * CHUNK_SIZE);
-
+            
+            for(let i=0; i<pos.count; i++) {
+                const wx = pos.getX(i) + cx * CHUNK_SIZE;
+                const wz = pos.getZ(i) + cz * CHUNK_SIZE;
                 const h = getHeight(wx, wz);
-                positions.setY(i, h);
+                pos.setY(i, h);
 
-                // Color Logic
-                if (h < WATER_LEVEL + 4) colors.push(0.9, 0.76, 0.53); // Sand
-                else if (h < 50) colors.push(0.33, 0.49, 0.27); // Grass
-                else if (h < 200) colors.push(0.35, 0.35, 0.35); // Rock
-                else colors.push(0.95, 0.95, 1.0); // Snow
+                // Colors
+                if (h < WATER_LEVEL + 3) colors.push(0.76, 0.7, 0.5); // Sand
+                else if (h < 80) colors.push(0.1, 0.5, 0.1); // Grass
+                else if (h < 250) colors.push(0.4, 0.4, 0.4); // Rock
+                else colors.push(0.9, 0.9, 0.95); // Snow
+
+                // Darken cave path floor for visual cue
+                if (wx > 90 && wx < 550) {
+                     const pathZ = getCaveCenterZ(wx);
+                     if (Math.abs(wz - pathZ) < 18) {
+                         // Overwrite with dark grey/black
+                         colors[colors.length-3] = 0.05;
+                         colors[colors.length-2] = 0.05;
+                         colors[colors.length-1] = 0.05;
+                     }
+                }
             }
-
-            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            geometry.computeVertexNormals();
-
-            const mat = new THREE.MeshStandardMaterial({ 
-                vertexColors: true, 
-                flatShading: true,
-                roughness: 0.9
-            });
-            const mesh = new THREE.Mesh(geometry, mat);
-            mesh.position.set(cx * CHUNK_SIZE, 0, cz * CHUNK_SIZE);
+            geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geo.computeVertexNormals();
+            const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1 }));
+            mesh.position.set(cx*CHUNK_SIZE, 0, cz*CHUNK_SIZE);
             mesh.receiveShadow = true;
-            // mesh.castShadow = true; // Disabled for terrain performance on large maps
-
             scene.add(mesh);
             activeChunks.set(`${cx},${cz}`, mesh);
         }
 
-        // --- PROPS & TOTEMS ---
-        function generateProps() {
-            // 1. Trees (InstancedMesh would be better, but we'll use Groups for simplicity with frustum culling)
-            const treeGeo = new THREE.ConeGeometry(4, 15, 6);
-            const treeMat = new THREE.MeshLambertMaterial({ color: 0x228b22 });
-            const trunkGeo = new THREE.CylinderGeometry(1, 1, 4);
-            const trunkMat = new THREE.MeshLambertMaterial({ color: 0x5C4033 });
-
-            for (let i = 0; i < 400; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const r = 200 + Math.random() * 300; // Ring around mountain
-                const x = Math.cos(angle) * r;
-                const z = Math.sin(angle) * r;
+        // --- PROPS ---
+        function generateStaticProps() {
+            // 1. Cave Roof & Walls
+            // We iterate along the cave path and place rocks to cover it
+            const rockGeo = new THREE.DodecahedronGeometry(15, 0);
+            const rockMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            
+            for(let x = 100; x < 550; x += 15) {
+                const z = getCaveCenterZ(x);
                 const y = getHeight(x, z);
                 
-                if (y > WATER_LEVEL && y < 150) {
-                    const group = new THREE.Group();
-                    const leaves = new THREE.Mesh(treeGeo, treeMat);
-                    leaves.position.y = 8;
-                    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-                    trunk.position.y = 2;
-                    group.add(leaves, trunk);
-                    group.position.set(x, y, z);
-                    const s = 1 + Math.random();
-                    group.scale.set(s,s,s);
-                    scene.add(group);
+                // Add Roof Rocks
+                const roofH = y + 25; // Ceiling height
+                // Place 3 rocks to form an arch
+                const r1 = new THREE.Mesh(rockGeo, rockMat);
+                r1.position.set(x, roofH, z);
+                r1.scale.set(1.5, 0.5, 1.5);
+                r1.castShadow = true;
+                scene.add(r1);
+
+                // Walls to block side light
+                const r2 = new THREE.Mesh(rockGeo, rockMat);
+                r2.position.set(x, roofH - 10, z + 20);
+                r2.scale.set(1, 2, 1);
+                r2.castShadow = true;
+                scene.add(r2);
+
+                const r3 = new THREE.Mesh(rockGeo, rockMat);
+                r3.position.set(x, roofH - 10, z - 20);
+                r3.scale.set(1, 2, 1);
+                r3.castShadow = true;
+                scene.add(r3);
+                
+                // Occasional Stalactite inside?
+                if (Math.random() > 0.8) {
+                    const stal = new THREE.Mesh(new THREE.ConeGeometry(1, 10), new THREE.MeshStandardMaterial({color:0x555555}));
+                    stal.position.set(x + (Math.random()-0.5)*10, roofH - 5, z + (Math.random()-0.5)*10);
+                    stal.rotation.x = Math.PI;
+                    scene.add(stal);
                 }
             }
 
-            // 2. Cave Rocks (Black Totem Area: x[120, 200], z[50, 150])
-            const rockGeo = new THREE.DodecahedronGeometry(10, 0);
-            const rockMat = new THREE.MeshLambertMaterial({ color: 0x444444 });
-            // Build Arch
-            for(let i=0; i<30; i++) {
-                const rock = new THREE.Mesh(rockGeo, rockMat);
-                rock.position.set(
-                    140 + Math.random() * 40,
-                    25 + Math.random() * 30,
-                    80 + Math.random() * 40
-                );
-                // Ensure rocks form a roof (above y=40)
-                if (rock.position.y > 40) scene.add(rock);
+            // 2. Trees (Outside)
+            const treeGeo = new THREE.ConeGeometry(5, 20, 5);
+            const treeMat = new THREE.MeshLambertMaterial({ color: 0x228b22 });
+            const trunkGeo = new THREE.CylinderGeometry(1, 1, 5);
+            for(let i=0; i<300; i++) {
+                const r = 300 + Math.random() * 400;
+                const a = Math.random() * Math.PI * 2;
+                const x = Math.cos(a) * r;
+                const z = Math.sin(a) * r;
+                const y = getHeight(x, z);
+                if (y > WATER_LEVEL && y < 200) {
+                    const grp = new THREE.Group();
+                    const l = new THREE.Mesh(treeGeo, treeMat); l.position.y = 10;
+                    const t = new THREE.Mesh(trunkGeo, rockMat); t.position.y = 2.5;
+                    grp.add(l, t);
+                    grp.position.set(x, y, z);
+                    grp.castShadow = true;
+                    scene.add(grp);
+                }
             }
 
-            // 3. Seagulls (White Totem Area - West Peak)
-            const whitePos = new THREE.Vector3(-150, 300, 0); 
-            // Spawn Birds
-            const birdGeo = new THREE.ConeGeometry(1, 4, 3);
-            birdGeo.rotateX(Math.PI/2);
-            for(let i=0; i<30; i++) {
-                const bird = new THREE.Mesh(birdGeo, new THREE.MeshBasicMaterial({color: 0xffffff}));
-                bird.position.copy(whitePos).add(new THREE.Vector3(Math.random()*40, Math.random()*20, Math.random()*40));
-                
-                // Bird AI Properties
-                bird.userData = {
-                    velocity: new THREE.Vector3(0,0,0),
-                    target: new THREE.Vector3().copy(whitePos), // Initial target
-                    zoneCenter: new THREE.Vector3().copy(whitePos),
-                    speed: 0.3 + Math.random() * 0.2
-                };
-                birds.push(bird);
-                scene.add(bird);
+            // 3. Totems
+            // Red: Peak East
+            addTotem('red', 0xff4444, new THREE.Vector3(200, 420, 0), "Dawn Witnessed.");
+            // White: Peak West (Seagulls)
+            addTotem('white', 0xeeeeee, new THREE.Vector3(-200, 380, 0), "Storm Survived.");
+            // Green: Brush
+            addTotem('green', 0x44ff44, new THREE.Vector3(-350, getHeight(-350, 200)+2, 200), "Nature Found.");
+            // Blue: Water
+            addTotem('blue', 0x4444ff, new THREE.Vector3(0, WATER_LEVEL+2, -600), "Depths Searched.");
+            // Black: Deep Cave End
+            addTotem('black', 0x111111, new THREE.Vector3(540, 55, getCaveCenterZ(540)), "Darkness Conquered.");
+
+            // 4. Birds (White Totem Area)
+            const birdGeo = new THREE.ConeGeometry(0.5, 2, 3); birdGeo.rotateX(Math.PI/2);
+            for(let i=0; i<25; i++) {
+                const b = new THREE.Mesh(birdGeo, new THREE.MeshBasicMaterial({color:0xffffff}));
+                b.userData = { center: new THREE.Vector3(-200, 390, 0), t: Math.random()*100 };
+                scene.add(b);
+                birds.push(b);
             }
-
-            // --- TOTEMS ---
-            // Red: High East Peak
-            addTotem('red', 0xff4444, new THREE.Vector3(150, 330, 0), "Dawn Breaker!");
-            
-            // White: High West Peak (with birds)
-            addTotem('white', 0xeeeeee, whitePos, "Storm Survivor!");
-            
-            // Green: Base brush
-            addTotem('green', 0x44ff44, new THREE.Vector3(-250, getHeight(-250, 150) + 2, 150), "Forest Ranger!");
-            
-            // Black: Cave
-            addTotem('black', 0x333333, new THREE.Vector3(160, 30, 100), "Spelunker!");
-            
-            // Blue: Water Edge
-            addTotem('blue', 0x4444ff, new THREE.Vector3(0, WATER_LEVEL + 2, 600), "Ocean Master!");
         }
 
-        function addTotem(id, hex, pos, msg) {
-            const geo = new THREE.OctahedronGeometry(2, 0);
-            const mat = new THREE.MeshStandardMaterial({ color: hex, emissive: hex, emissiveIntensity: 0.8 });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.copy(pos);
-            
-            const light = new THREE.PointLight(hex, 10, 30);
-            mesh.add(light);
-            scene.add(mesh);
-
-            totems.push({ id, mesh, color: hex, msg, collected: false });
+        function addTotem(id, color, pos, msg) {
+            const m = new THREE.Mesh(new THREE.OctahedronGeometry(2), new THREE.MeshStandardMaterial({color:color, emissive:color, emissiveIntensity:0.5}));
+            m.position.copy(pos);
+            const l = new THREE.PointLight(color, 5, 20);
+            m.add(l);
+            scene.add(m);
+            totems.push({id, mesh: m, msg, collected: false, color});
         }
 
-        // --- GAME LOGIC LOOP ---
+        // --- ANIMATION LOOP ---
         function animate() {
             requestAnimationFrame(animate);
 
             const time = performance.now();
-            const delta = Math.min((time - prevTime) / 1000, 0.1); // Cap delta to prevent huge jumps
+            const delta = Math.min((time - prevTime) / 1000, 0.1);
             prevTime = time;
 
+            // --- INTRO SEQUENCE ---
+            if (isIntro) {
+                const elapsed = (time - introStartTime) / 1000;
+                
+                // Phase 1: Stand up (0s - 2s)
+                if (elapsed < 2.0) {
+                    const t = elapsed / 2.0; // 0 to 1
+                    // Easing cubic out
+                    const ease = 1 - Math.pow(1 - t, 3);
+                    camera.position.y = (introOrigin.y + 1) + (playerHeight - 1) * ease;
+                    // Tilt look up slightly
+                    camera.rotation.x = -Math.PI/4 * (1 - ease); 
+                } 
+                // Phase 2: Look Left/Right (2s - 4s)
+                else if (elapsed < 4.5) {
+                    camera.position.y = introOrigin.y + playerHeight;
+                    const lookT = (elapsed - 2.0);
+                    // Sine wave rotation for looking around
+                    camera.rotation.y = Math.sin(lookT * 2) * 0.5; 
+                    camera.rotation.x = 0;
+                }
+                // End Intro
+                else {
+                    isIntro = false;
+                    controls.enabled = true; // Give control to player
+                    flashlight.intensity = 2; // Auto turn on light
+                    document.body.classList.remove('cinematic-active');
+                    document.getElementById('controls-hint').style.opacity = 1;
+                    showMessage("Find the 5 Artifacts");
+                }
+                
+                // Still load chunks during intro so it looks nice
+                updateChunks();
+                return; // Skip game logic
+            }
+
             if (controls.isLocked) {
-                // 1. Chunk Management
                 updateChunks();
 
-                // 2. Day/Night Cycle
-                const dayDuration = 240; // Seconds for full day
-                const t = (time / 1000) / dayDuration; 
-                dayTime = (Math.sin(t * Math.PI * 2) + 1) / 2; // 0..1
-                
-                const sunX = Math.cos(t * Math.PI * 2) * 500;
-                const sunY = Math.sin(t * Math.PI * 2) * 500;
+                // Day Cycle
+                const dayLen = 300; 
+                const t = (time / 1000) / dayLen;
+                const sunY = Math.sin(t * 6.28) * 500;
+                const sunX = Math.cos(t * 6.28) * 500;
                 sunLight.position.set(sunX, sunY, 100);
                 sunMesh.position.copy(sunLight.position);
-                sunLight.intensity = Math.max(0, sunY/500) + 0.1;
+                sunLight.intensity = Math.max(0.05, Math.sin(t * 6.28));
                 
-                // UI Time
-                const hour = Math.floor(dayTime * 24);
-                const ampm = hour >= 12 ? "PM" : "AM";
-                const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-                document.getElementById('time-display').innerText = `${displayHour}:00 ${ampm}`;
+                // Color Fog based on time (Sunrise/Sunset/Night)
+                if (sunY < 0) scene.fog.color.setHex(0x050510); // Night
+                else if (sunY < 100) scene.fog.color.setHex(0xffaa55); // Sunrise/Set
+                else scene.fog.color.setHex(0x87CEEB); // Day
 
-                // 3. Physics & Movement
-                velocity.x -= velocity.x * 5.0 * delta; // Friction
+                // Physics
+                velocity.x -= velocity.x * 5.0 * delta;
                 velocity.z -= velocity.z * 5.0 * delta;
-                velocity.y -= 9.8 * 10.0 * delta; // Gravity
+                velocity.y -= 30.0 * delta; // Gravity
 
                 direction.z = Number(moveForward) - Number(moveBackward);
                 direction.x = Number(moveRight) - Number(moveLeft);
                 direction.normalize();
 
-                // Sprint / Stamina
-                const isSprinting = sprint && stamina > 0 && (moveForward || moveBackward || moveLeft || moveRight);
-                const speed = isSprinting ? 1200.0 : 600.0;
-                
-                if (isSprinting) stamina -= 15 * delta;
-                else if (stamina < MAX_STAMINA) stamina += 8 * delta;
+                const speed = (sprint && stamina > 0) ? 1000 : 500;
+                if (sprint && direction.length() > 0) stamina -= 10 * delta;
+                else if (stamina < 100) stamina += 5 * delta;
                 
                 document.getElementById('stamina-bar').style.width = stamina + '%';
-                document.getElementById('stamina-bar').style.backgroundColor = stamina < 20 ? '#ff4444' : '#FFD700';
 
                 if (moveForward || moveBackward) velocity.z -= direction.z * speed * delta;
                 if (moveLeft || moveRight) velocity.x -= direction.x * speed * delta;
 
-                // Apply velocity
                 controls.moveRight(-velocity.x * delta);
                 controls.moveForward(-velocity.z * delta);
 
-                // 4. Ground Collision (Gravity)
                 const pos = camera.position;
-                const groundH = getHeight(pos.x, pos.z);
-
-                if (pos.y < groundH + playerHeight) {
-                    velocity.y = Math.max(0, velocity.y);
-                    pos.y = groundH + playerHeight;
-                    canJump = true;
-                    isClimbing = false;
-                }
-
-                // 5. Climbing Mechanics (Slope Detection)
-                const lookDir = new THREE.Vector3();
-                controls.getDirection(lookDir);
-                const frontH = getHeight(pos.x + lookDir.x * 3, pos.z + lookDir.z * 3);
+                const ground = getHeight(pos.x, pos.z);
                 
-                if (frontH > pos.y - playerHeight + 5) {
-                    // Wall detected
-                    if (jumping && stamina > 0) {
-                        isClimbing = true;
-                        velocity.y = 100; // Climb speed
-                        stamina -= 40 * delta;
-                    } else if (frontH > pos.y - playerHeight + 15) {
-                        // Too steep, push back if not climbing
-                        velocity.x = 0; velocity.z = 0;
-                    }
+                if (pos.y < ground + playerHeight) {
+                    velocity.y = 0;
+                    pos.y = ground + playerHeight;
+                    canJump = true;
                 }
 
-                // 6. Bird AI
-                updateBirds(delta, pos);
+                // Birds Logic
+                birds.forEach(b => {
+                    b.userData.t += delta;
+                    b.position.copy(b.userData.center);
+                    b.position.x += Math.sin(b.userData.t) * 30;
+                    b.position.z += Math.cos(b.userData.t * 0.7) * 30;
+                    b.position.y += Math.sin(b.userData.t * 2.5) * 10;
+                    b.lookAt(b.userData.center);
+                    
+                    if (pos.distanceTo(b.userData.center) < 80) {
+                         if (Math.random() > 0.9) document.body.classList.toggle('shaking');
+                         stamina -= delta * 2;
+                    }
+                });
 
-                // 7. Totem Logic
-                checkTotems(pos);
+                // Totem Logic
+                totems.forEach(totem => {
+                    if(totem.collected) {
+                        totem.mesh.rotation.y += 0.1; 
+                        totem.mesh.position.y += Math.sin(time*0.01)*0.1;
+                        return;
+                    }
+                    totem.mesh.rotation.y += 0.02;
+                    if (pos.distanceTo(totem.mesh.position) < 10) {
+                        if (totem.id === 'red' && sunLight.position.y > 50) {
+                             showMessage("Wait for Sunrise..."); return;
+                        }
+                        totem.collected = true;
+                        totem.mesh.visible = false;
+                        collectedTotems[totem.id] = true;
+                        document.getElementById(`slot-${totem.id}`).classList.add('filled');
+                        document.getElementById(`slot-${totem.id}`).style.backgroundColor = '#' + totem.color.toString(16);
+                        showMessage(totem.msg);
+                    }
+                });
             }
 
             renderer.render(scene, camera);
         }
 
-        function updateBirds(delta, playerPos) {
-            const agitationZone = new THREE.Vector3(-150, 300, 0);
-            const dist = playerPos.distanceTo(agitationZone);
-            
-            // Screen Shake Effect near white totem
-            if (dist < 80) {
-                document.body.classList.add('shaking');
-                stamina -= 5 * delta; // Birds attacking drains stamina
-            } else {
-                document.body.classList.remove('shaking');
-            }
-
-            birds.forEach(bird => {
-                // 1. Move towards target
-                const dir = new THREE.Vector3().subVectors(bird.userData.target, bird.position).normalize();
-                
-                // Add some "noise" to movement for organic feel
-                dir.x += (Math.random()-0.5) * 0.1;
-                dir.y += (Math.random()-0.5) * 0.1;
-                dir.z += (Math.random()-0.5) * 0.1;
-
-                bird.position.add(dir.multiplyScalar(bird.userData.speed));
-                bird.lookAt(bird.userData.target);
-
-                // 2. Check if reached target
-                if (bird.position.distanceTo(bird.userData.target) < 5) {
-                    // Pick new random point in zone
-                    const rX = (Math.random() - 0.5) * 80;
-                    const rY = (Math.random() - 0.5) * 40;
-                    const rZ = (Math.random() - 0.5) * 80;
-                    bird.userData.target.copy(bird.userData.zoneCenter).add(new THREE.Vector3(rX, rY, rZ));
-                }
-            });
-        }
-
-        function checkTotems(pos) {
-            totems.forEach(t => {
-                if (t.collected) {
-                    t.mesh.rotation.y += 0.05;
-                    t.mesh.position.y += Math.sin(performance.now() * 0.005) * 0.05;
-                    return;
-                }
-
-                t.mesh.rotation.z += 0.02; 
-                t.mesh.rotation.x += 0.02;
-
-                if (pos.distanceTo(t.mesh.position) < 8) {
-                    // Special Condition: Red needs Sunrise
-                    if (t.id === 'red') {
-                        // Check sun height relative to horizon, but rising
-                        const sunY = sunLight.position.y;
-                        const sunX = sunLight.position.x;
-                        // Rising means X is positive going to Y positive? 
-                        // In our cycle: cos=x, sin=y. 
-                        // Sunrise is roughly when Y crosses 0 upwards.
-                        // Actually, simplified: Is Sun just above horizon?
-                        if (sunY > -50 && sunY < 100 && sunX > 0) {
-                            // Good
-                        } else {
-                            showMessage("Only at Sunrise...");
-                            return;
-                        }
-                    }
-
-                    t.collected = true;
-                    t.mesh.visible = false;
-                    collectedTotems[t.id] = true;
-                    
-                    // UI Update
-                    const slot = document.getElementById(`slot-${t.id}`);
-                    slot.style.backgroundColor = '#' + t.color.toString(16);
-                    slot.classList.add('filled');
-                    
-                    showMessage(t.msg);
-
-                    if (Object.values(collectedTotems).every(v=>v)) {
-                        setTimeout(() => showMessage("ULTIMATE VICTORY!"), 2000);
-                    }
-                }
-            });
-        }
-
-        function showMessage(text) {
+        function showMessage(txt) {
             const el = document.getElementById('message-overlay');
-            el.innerText = text;
+            el.innerText = txt;
             el.style.opacity = 1;
-            setTimeout(() => { el.style.opacity = 0; }, 3000);
+            setTimeout(() => el.style.opacity = 0, 3000);
         }
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
     </script>
 </body>
 </html>
